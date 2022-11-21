@@ -133,7 +133,7 @@ def test_vector_standard_encryption():
 
 
 def test_vector_extended_encryption():
-    coordinator = CoordinatorSession(M=2, N=3, script_type="p2sh-p2wsh", encryption="EXTENDED")
+    coordinator = CoordinatorSession(M=2, N=3, script_type="p2sh-p2wsh", encryption="EXTENDED", sortedmulti=False)
     session_data = coordinator.custom_session_data([
         "108a2360adb302774eb521daebbeda5e",
         "d3fabc873b98165254fe18a71b5335b0",
@@ -179,9 +179,49 @@ def test_vector_extended_encryption():
                              "885e81dbef6a353ca387f4514db3158eb69f0d2725d42ad8102c05c26ad501d48b889c624035ead4")
 
     descriptor_records = coordinator.round_2([s1_ciphertext, s2_ciphertext, s3_ciphertext])
-    s1.round_2(descriptor_records[0])
-    s2.round_2(descriptor_records[1])
-    s3.round_2(descriptor_records[2])
+    descriptor_record_s1 = descriptor_records[0]
+    expect_s1 = ("01bf557b6d44b3fbf07f8ec155cbdec42d85d856e174342563dd83b40ad7c025617ed25b4b8fd88b806cbebcc17"
+                            "31b071465514a805f7ba2de60e291bc9493f31aa0f9b0665ba822cf9a2e21c02649b5c3f7dbad317ae898292cb6"
+                            "fe992520f68c0ebe9d1434b348af10453f1be0a392a616d43ba21e5e7fa3c995dce54db947fe5dbad4a9a77f37b"
+                            "3aef58c54ee3e496c8312d3033359aed0de8cf28b82035ee7a38c9b23c9d95682fb15936bf2247546d2ba9b3ada"
+                            "605f5c89f0a3bbaa86cb4b5dded9a65004912c0afbbfd01f0115447f5625e8523f9de16165d32c4b21103d8ac96"
+                            "5e2f7e17641ee1a8c5902e8dbb461c6c7d05141f7bba66b8b3608037fb251b55fa461c9441c6427921545a34a17"
+                            "98127d5bf9cc92423f7e62c769e232c65db8cc5124577012d49941143c3b4758212a8afa0475c9b3597da2e99d5"
+                            "85039339b7d73611aa277878d212875051683053db9c630391e0b32356523e9fa8a58a334e16fe6650472f336dd"
+                            "aa8c587992b6c0c0e480b680261579a11cf9d036614abc113dde53653273f5ce82ea0bc10e38ca52ac66838aa49"
+                            "ff46c3a7d5096db439c15d3c2e8de55e4ac7315a57eb9997f219c378af86c858867ce583ed84e4d9c68aecfbca9"
+                            "ebff16b0ac91531125e273b215db688ffe52c8033eb78914b87c0fa2001c52e90c92765712e50384ddcf4d0953a"
+                            "c3cc8137abcb2a85d603a6cc207472677")
+    assert descriptor_record_s1 == expect_s1
+    descriptor_record_s2 = descriptor_records[1]
+    expect_s2 = ("974ba77900c43c463dadaa6eaf24aaeb1b25b443cf155229b719bcbf8b34309286288c97a6341974a35015f97fbbc8db765563"
+                 "9c839fc438706f82fce36a82dd17e2d4d4a674516c4fc5c3a33d6097dd8fc5c6605018946741ed9f58d8fe530a808f16f0dd70"
+                 "5cacfd273e34a158bd7566774dd31506b8280e448fabb72d0e7dfc05cee1142b61921dfaf0b0039d885cc0aa76c429025efc2b"
+                 "a49a8af15b58e75a5a83ba4838a9a4c9f13725f5aecefd8511513d93797f37b93150b9dca725685883188e39142dd8d3cf4b61"
+                 "7c7936bdb3875415bbf6dfb2fe1a39ae2aed9fd2909aebd0355a5cc9a55bcb84048c851a1873948e495180f336edeb63f54bcf"
+                 "83feaa4d2453251260e24293e49815c2369c1c045083c412c973987fd7c9296a71cda424823ed32380ba442394500b7d2d2335"
+                 "818099090aaf08ca4e180869c546f58da4cb4ff0f95b796a35c40ea455e2ddd3e08bc494ffddc706aaf4d479f4f359e6a89a90"
+                 "df7c9b8f23cab355855a72b90795a0db83a96bce0dd4f77e3f58c0957b4ffe9663251565098e6c31fd4bbf3e1295faaff05e29"
+                 "912d9c37cb944da379a9b2193b466910d05a681e53a2dbe5aa18a2b4874153fe36d8a1aa4cc6e612bd6dbc9abb8e1e61b927fc"
+                 "5458d8e1be9536cd462e4c37672af7928c39e94bdc124a2da7b1bd3cad2cfe559adc33e62eb45bff89db8a47a72dda4f49f21c"
+                 "01a9432f4802a1")
+    assert descriptor_record_s2 == expect_s2
+    descriptor_record_s3 = descriptor_records[2]
+    expect_s3 = ("bb3c93b67d758f244de7ee73e5e61261cea6dff5b3852df8faf265cdf1c73dae7ac33bd9719a3cef6c68e09b3c967756541893"
+                 "3f188bbe50dc70f46329706732fe28ab230468e2a8798d3fbf641867d5b3322113204a372e7650ed06cf94d6df5cc7425b1b3a"
+                 "07690a32e12fd9cdad2c9f42d496c1b02215a7d8d63565aa4935bb2b087af39eebc02d4a2d30a4dbf1e72b9a0dab11473c7254"
+                 "ecf9065eb4f9d80a164c489d5fdae0d15d97b6100b79c3999b91341dfb4f599f738d4d631ae413c17b55daa09a67cb34b40d89"
+                 "c26f0e95ddfbf416033f869da32e502815d720bb342ec1c0e5c6910c598f32162016229cd37ea030b4d3b60f560105abb75531"
+                 "dc960ddf6830c26604c67c2da05b8adc45297dda58b2da4671104969b819cdf1c362bc20d7bdfe4a2fbdb79b4a69e285434d99"
+                 "1c269e3d23ce3d95675a0acbec2cae04a310581148d3422c1c0a621fb6d79ecac1743b0e76837389b67cd4734ec5ab560c43a1"
+                 "83de35fa98834e1f347a0c0c9b14273b76233f55f04553efcde873de92d766f3cdc5e56bc649bf0cc4951f051619ee9b931cd3"
+                 "872044b0e62ea2c2dacad978dbb8df3afa0b9386535278c295c6a30a56950e57f805770568e937ffafbadb226120991d5ec10e"
+                 "ffa9f4334800010d141a2ddddc00ac743efa821af37f69840487e4db48036c1e0730788cddbca2f68b3769ec6989d76161e660"
+                 "5af50651b6e86e")
+    assert descriptor_record_s3 == expect_s3
+    s1.round_2(descriptor_record_s1)
+    s2.round_2(descriptor_record_s2)
+    s3.round_2(descriptor_record_s3)
     print("{0:50s}PASSED".format(test_vector_extended_encryption.__name__))
 
 

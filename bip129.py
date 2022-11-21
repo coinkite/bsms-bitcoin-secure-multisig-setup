@@ -15,11 +15,17 @@ from encryption import key_derivation_function, encrypt, decrypt
 
 BSMS_VERSION = "BSMS 1.0"
 
-# all must be sortedmulti
-script2desc = {
+
+script2desc_sortedmulti = {
     # "p2sh": "sh(sortedmulti(%d,%s))",
     "p2sh-p2wsh": "sh(wsh(sortedmulti(%d,%s)))",
     "p2wsh": "wsh(sortedmulti(%d,%s))"
+}
+
+script2desc_multi = {
+    # "p2sh": "sh(sortedmulti(%d,%s))",
+    "p2sh-p2wsh": "sh(wsh(multi(%d,%s)))",
+    "p2wsh": "wsh(multi(%d,%s))"
 }
 
 
@@ -28,7 +34,7 @@ class CoordinatorSession:
         self.M = M
         self.N = N
         self.script_type = script_type.lower()
-        assert self.script_type in list(script2desc.keys())
+        assert self.script_type in list(script2desc_sortedmulti.keys())
         self.encryption = encryption.upper()
         assert self.encryption in ["NO_ENCRYPTION", "STANDARD", "EXTENDED"]
         self.sortedmulti = sortedmulti
@@ -132,7 +138,11 @@ class CoordinatorSession:
 
         assert len(bsms_versions) == 1, "Different BSMS version"
         result = "%s\n" % BSMS_VERSION
-        desc_template = script2desc[self.script_type]
+        if self.sortedmulti:
+            mapping = script2desc_sortedmulti
+        else:
+            mapping = script2desc_multi
+        desc_template = mapping[self.script_type]
         descriptor = desc_template % (self.M, ",".join(extended_keys))
         result += "%s\n" % descriptor
         if not is_xpub:
@@ -276,7 +286,7 @@ class Signer:
             address = p2wsh_address(secs, M, sortedmulti=sortedmulti)
         else:
             address = p2sh_p2wsh_address(secs, M, sortedmulti=sortedmulti)
-        assert address ==addr
+        assert address == addr
 
         # For confirmation, the Signer must display to the user the wallet's first address and policy parameters,
         # including, but not limited to: the derivation path restrictions, M, N, and the position(s)
