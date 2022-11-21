@@ -6,7 +6,7 @@ import os
 import base64
 
 from base58 import decode_base58_checksum, encode_base58_checksum
-from util import bitcoin_msg, str2path
+from util import bitcoin_msg, str2path, descriptor_append_checksum, descriptor_checksum
 from bip32 import PrvKeyNode, PubKeyNode
 from ecdsa import ecdsa_sign, ecdsa_verify, ecdsa_recover
 from address import p2wsh_address, p2sh_p2wsh_address
@@ -30,7 +30,8 @@ script2desc_multi = {
 
 
 class CoordinatorSession:
-    def __init__(self, M, N, script_type, encryption="NO_ENCRYPTION", sortedmulti=True, path_restrictions="/0/*,/1/*"):
+    def __init__(self, M, N, script_type, encryption="NO_ENCRYPTION", sortedmulti=True, path_restrictions="/0/*,/1/*",
+                 desc_checksum=False):
         self.M = M
         self.N = N
         self.script_type = script_type.lower()
@@ -39,6 +40,7 @@ class CoordinatorSession:
         assert self.encryption in ["NO_ENCRYPTION", "STANDARD", "EXTENDED"]
         self.sortedmulti = sortedmulti
         self.path_restrictions = path_restrictions
+        self.desc_checksum = desc_checksum
         self.session_data = None
 
     def __repr__(self):
@@ -144,6 +146,8 @@ class CoordinatorSession:
             mapping = script2desc_multi
         desc_template = mapping[self.script_type]
         descriptor = desc_template % (self.M, ",".join(extended_keys))
+        if self.desc_checksum:
+            descriptor = descriptor_append_checksum(descriptor)
         result += "%s\n" % descriptor
         if not is_xpub:
             path_restrictions = "No path restrictions"
@@ -242,8 +246,11 @@ class Signer:
         # fingerprints, which is trivial to spoof.
         assert self.desc_type_key() in descriptor
         # The Signer verifies that it is compatible with the derivation path restrictions.
+        if "#" in descriptor:
+            # has checksum
+            descriptor, checksum = descriptor.split("#")
+            assert checksum == descriptor_checksum(descriptor)
         sortedmulti = True
-        script_type = None
         # The Signer verifies that the wallet's first address is valid.
         if descriptor.startswith("wsh(sortedmulti("):
             res = descriptor.replace("wsh(sortedmulti(", "")

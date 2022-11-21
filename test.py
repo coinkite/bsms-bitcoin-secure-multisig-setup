@@ -7,7 +7,7 @@ from bip129 import CoordinatorSession, Signer
 
 
 def test_vector_no_encryption_pubkey():
-    coordinator = CoordinatorSession(M=1, N=2, script_type="p2wsh", encryption="NO_ENCRYPTION")
+    coordinator = CoordinatorSession(M=1, N=2, script_type="p2wsh", encryption="NO_ENCRYPTION", desc_checksum=True)
     coordinator.generate_token_key_pairs()
     assert coordinator.session_data == [("00", None)]
     s1 = Signer(token="00", key_description="Signer 1 key", master_fp="59865f44",
@@ -39,11 +39,7 @@ H08mGNGN+NxX/snt+6eX2Q1HjjfDkOtotglshHi7xdsBdIrTVMCQbgQ5SdACNZ0B2AJcifK11nJj43Sv
 wsh(sortedmulti(1,[59865f44/48'/0'/0'/2']026d15412460ba0d881c21837bb999233896085a9ed4e5445bd637c10e579768ba,[b7044ca6/48'/0'/0'/2']030baf0497ab406ff50cb48b4013abac8a0338758d2fd54cd934927afa57cc2062))#rzx9dffd
 No path restrictions
 bc1quqy523xu3l8che3s8vja8n33qtg0uyugr9l5z092s3wa50p8t7rqy6zumf"""
-    try:
-        assert descriptor_record == expect
-    except:
-        # only this descriptor has checksum --> all should have it
-        pass
+    assert descriptor_record == expect
     s1.round_2(descriptor_record)
     s2.round_2(descriptor_record)
     print("{0:50s}PASSED".format(test_vector_no_encryption_pubkey.__name__))
