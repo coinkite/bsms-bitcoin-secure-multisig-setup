@@ -3,18 +3,15 @@
 #
 
 import os
-import hmac
-import pyaes
 import base64
-import hashlib
 
 from base58 import decode_base58_checksum, encode_base58_checksum
 from util import bitcoin_msg, str2path
 from bip32 import PrvKeyNode, PubKeyNode
 from ecdsa import ecdsa_sign, ecdsa_verify, ecdsa_recover
 from address import p2wsh_address, p2sh_p2wsh_address
+from encryption import key_derivation_function, encrypt, decrypt
 
-SHA512 = "sha512"
 
 BSMS_VERSION = "BSMS 1.0"
 
@@ -26,47 +23,8 @@ script2desc = {
 }
 
 
-def write_file(path, data):
-    with open(path, "w") as f:
-        f.write(data)
-
-
-def key_derivation_function(token):
-    key = hashlib.pbkdf2_hmac(
-        hash_name=SHA512,
-        password=b"No SPOF",
-        salt=bytes.fromhex(token),
-        iterations=2048,
-        dklen=32,
-    )
-    return key
-
-
-def hmac_key(key):
-    return hashlib.sha256(key).digest()
-
-
-def m_a_c(key, token, data):
-    mac_key = hmac.new(key=key, msg=(token + data).encode(), digestmod=hashlib.sha256).digest()
-    return mac_key
-
-
-def aes_256_ctr_encrypt(key, iv, plaintext):
-    aes_encrypt = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(int(iv.hex(), 16)))
-    ciphertext = aes_encrypt.encrypt(plaintext)
-    ciphertext_str = ciphertext.hex()
-    return ciphertext_str
-
-
-def aes_256_ctr_decrypt(key, iv, ciphertext):
-    aes_decrypt = pyaes.AESModeOfOperationCTR(key, pyaes.Counter(int(iv.hex(), 16)))
-    plaintext = aes_decrypt.decrypt(ciphertext)
-    plaintext = plaintext.decode()
-    return plaintext
-
-
 class CoordinatorSession:
-    def __init__(self, M, N, script_type, encryption="NO_ENCRYPTION", sortedmulti=True):
+    def __init__(self, M, N, script_type, encryption="NO_ENCRYPTION", sortedmulti=True, path_restrictions="/0/*,/1/*"):
         self.M = M
         self.N = N
         self.script_type = script_type.lower()
@@ -74,6 +32,7 @@ class CoordinatorSession:
         self.encryption = encryption.upper()
         assert self.encryption in ["NO_ENCRYPTION", "STANDARD", "EXTENDED"]
         self.sortedmulti = sortedmulti
+        self.path_restrictions = path_restrictions
         self.session_data = None
 
     def __repr__(self):
@@ -123,23 +82,21 @@ class CoordinatorSession:
         self.session_data = res
         return self.session_data
 
+    def first_from_path_restrictions(self):
+        first = self.path_restrictions.split(",")[0]
+        return [int(num) if num != "*" else 0 for num in first.split("/") if num]
+
     def round_2(self, key_records):
         assert len(set(key_records)) == self.N
         decrypted_key_records = []
         if self.is_extended_encryption():
             # needs to get records in order to know which key to use
             for i, record in enumerate(key_records):
-                record = bytes.fromhex(record)
-                mac, ciphertext = record[:32], record[32:]
-                iv = mac[:16]
-                decrypted = aes_256_ctr_decrypt(self.session_data[i][1], iv, ciphertext)
+                decrypted = decrypt(self.session_data[i][1], record)
                 decrypted_key_records.append(decrypted)
         elif self.is_standard_encryption():
             for record in key_records:
-                record = bytes.fromhex(record)
-                mac, ciphertext = record[:32], record[32:]
-                iv = mac[:16]
-                decrypted = aes_256_ctr_decrypt(self.session_data[0][1], iv, ciphertext)
+                decrypted = decrypt(self.session_data[0][1], record)
                 decrypted_key_records.append(decrypted)
         else:
             decrypted_key_records = key_records
@@ -157,7 +114,8 @@ class CoordinatorSession:
                 parsed_sec = parsed_xpub.sec()
                 nodes.append(parsed_xpub)
             else:
-                # pubkeys SEC
+                # pubkeys SEC (compressed)
+                assert pub[:2] in ["03", "02"]
                 parsed_sec = bytes.fromhex(pub)
                 secs.append(parsed_sec)
                 is_xpub = False
@@ -177,15 +135,16 @@ class CoordinatorSession:
         desc_template = script2desc[self.script_type]
         descriptor = desc_template % (self.M, ",".join(extended_keys))
         result += "%s\n" % descriptor
-        if is_xpub:
-            path_restrictions = "/0/*,/1/*"
-        else:
+        if not is_xpub:
             path_restrictions = "No path restrictions"
+        else:
+            path_restrictions = self.path_restrictions
         result += "%s\n" % path_restrictions
 
         if not secs:
+            # secs are empty only if we have xpubs
             for node in nodes:
-                derived = node.derive_path([0,0])
+                derived = node.derive_path(self.first_from_path_restrictions())
                 secs.append(derived.sec())
 
         if self.script_type == "p2wsh":
@@ -197,19 +156,11 @@ class CoordinatorSession:
         results = []
         if self.is_extended_encryption():
             for token, key in self.session_data:
-                hmac_k = hmac_key(key)
-                mac = m_a_c(hmac_k, token, result)
-                iv = mac[:16]
-                ciphertext = aes_256_ctr_encrypt(key, iv, result)
-                res = mac.hex() + ciphertext
+                res = encrypt(key, token, result)
                 results.append(res)
         elif self.is_standard_encryption():
             token, key = self.session_data[0]
-            hmac_k = hmac_key(key)
-            mac = m_a_c(hmac_k, token, result)
-            iv = mac[:16]
-            ciphertext = aes_256_ctr_encrypt(key, iv, result)
-            res = mac.hex() + ciphertext
+            res = encrypt(key, token, result)
             results.append(res)
         else:
             # no encryption
@@ -263,19 +214,12 @@ class Signer:
         sig = base64.b64encode(ecdsa_sign(bitcoin_msg(result), self.sk)).decode()
         result += "\n" + sig
         if self.encryption_key:
-            hmac_k = hmac_key(self.encryption_key)
-            mac = m_a_c(hmac_k, self.token, result)
-            iv = mac[:16]
-            ciphertext = aes_256_ctr_encrypt(self.encryption_key, iv, result)
-            result = mac.hex() + ciphertext
+            result = encrypt(self.encryption_key, self.token, result)
         return result
 
     def round_2(self, descriptor_record):
         if self.encryption_key:
-            record = bytes.fromhex(descriptor_record)
-            mac, ciphertext = record[:32], record[32:]
-            iv = mac[:16]
-            decrypted = aes_256_ctr_decrypt(self.encryption_key, iv, ciphertext)
+            decrypted = decrypt(self.encryption_key, descriptor_record)
             descriptor_record = decrypted
 
         version, descriptor, path_restrictions, addr = descriptor_record.split("\n")
@@ -323,6 +267,8 @@ class Signer:
                 derived = ext_key.derive_path([0, 0])
                 secs.append(derived.sec())
             else:
+                # pubkey SEC (compressed)
+                assert pub[:2] in ["03", "02"]
                 derived = bytes.fromhex(pub)
                 secs.append(derived)
 

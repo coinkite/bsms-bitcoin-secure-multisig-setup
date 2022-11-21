@@ -46,7 +46,7 @@ bc1quqy523xu3l8che3s8vja8n33qtg0uyugr9l5z092s3wa50p8t7rqy6zumf"""
         pass
     s1.round_2(descriptor_record)
     s2.round_2(descriptor_record)
-    print("test_vector_no_encryption_pubkey\t\tPASSED")
+    print("{0:50s}PASSED".format(test_vector_no_encryption_pubkey.__name__))
 
 
 def test_vector_no_encryption_xpub():
@@ -84,7 +84,7 @@ bc1qrgc6p3kylfztu06ysl752gwwuekhvtfh9vr7zg43jvu60mutamcsv948ej"""
     assert descriptor_record == expect
     s1.round_2(descriptor_record)
     s2.round_2(descriptor_record)
-    print("test_vector_no_encryption_xpub\t\tPASSED")
+    print("{0:50s}PASSED".format(test_vector_no_encryption_xpub.__name__))
 
 
 def test_vector_standard_encryption():
@@ -129,7 +129,7 @@ def test_vector_standard_encryption():
                                  "456b06d96b3da30439cb4320c764a0d6d1b3dabc06fc")
     s1.round_2(descriptor_record)
     s2.round_2(descriptor_record)
-    print("test_vector_standard_encryption\t\tPASSED")
+    print("{0:50s}PASSED".format(test_vector_standard_encryption.__name__))
 
 
 def test_vector_extended_encryption():
@@ -182,10 +182,10 @@ def test_vector_extended_encryption():
     s1.round_2(descriptor_records[0])
     s2.round_2(descriptor_records[1])
     s3.round_2(descriptor_records[2])
-    print("test_vector_extended_encryption\t\tPASSED")
+    print("{0:50s}PASSED".format(test_vector_extended_encryption.__name__))
 
 
-def test_random():
+def test_random_10_of_15():
     coordinator = CoordinatorSession(M=10, N=15, script_type="p2wsh", encryption="EXTENDED")
     coordinator.generate_token_key_pairs()
     signers = []
@@ -198,7 +198,7 @@ def test_random():
     descriptor_records = coordinator.round_2(key_records)
     for signer, desc_record in zip(signers, descriptor_records):
         signer.round_2(desc_record)
-    print("test_random\t\tPASSED")
+    print("{0:50s}PASSED".format(test_random_10_of_15.__name__))
 
 
 if __name__ == "__main__":
@@ -206,4 +206,4 @@ if __name__ == "__main__":
     test_vector_no_encryption_xpub()
     test_vector_standard_encryption()
     test_vector_extended_encryption()
-    test_random()
+    test_random_10_of_15()
