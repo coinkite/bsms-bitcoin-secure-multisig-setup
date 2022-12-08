@@ -3,7 +3,7 @@
 #
 
 
-from bip129 import CoordinatorSession, Signer
+from bsms.bip129 import CoordinatorSession, Signer
 
 
 def test_vector_no_encryption_pubkey():
