@@ -4,7 +4,7 @@
 # Used with permission from <https://github.com/scgbckbone/btc-hd-wallet/tree/master/btc_hd_wallet>
 #
 
-from util import ser_compact_size, int_to_little_endian
+from bsms.util import ser_compact_size, int_to_little_endian
 
 
 def raw_serialize(script) -> bytes:

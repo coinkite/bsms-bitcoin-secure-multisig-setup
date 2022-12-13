@@ -5,12 +5,12 @@
 import os
 import base64
 
-from base58 import decode_base58_checksum, encode_base58_checksum
-from util import bitcoin_msg, str2path, descriptor_append_checksum, descriptor_checksum
-from bip32 import PrvKeyNode, PubKeyNode
-from ecdsa import ecdsa_sign, ecdsa_verify, ecdsa_recover
-from address import p2wsh_address, p2sh_p2wsh_address
-from encryption import key_derivation_function, encrypt, decrypt
+from bsms.base58 import decode_base58_checksum, encode_base58_checksum
+from bsms.util import bitcoin_msg, str2path, descriptor_append_checksum, descriptor_checksum
+from bsms.bip32 import PrvKeyNode, PubKeyNode
+from bsms.ecdsa import ecdsa_sign, ecdsa_verify, ecdsa_recover
+from bsms.address import p2wsh_address, p2sh_p2wsh_address
+from bsms.encryption import key_derivation_function, encrypt, decrypt
 
 
 BSMS_VERSION = "BSMS 1.0"

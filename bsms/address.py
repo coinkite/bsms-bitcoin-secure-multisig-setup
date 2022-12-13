@@ -5,10 +5,10 @@
 #
 
 import hashlib
-import bech32
-from util import hash160
-from base58 import encode_base58_checksum
-from script import raw_serialize
+from bsms import bech32
+from bsms.util import hash160
+from bsms.base58 import encode_base58_checksum
+from bsms.script import raw_serialize
 
 
 OP_NUMBERS = {

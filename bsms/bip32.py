@@ -9,9 +9,9 @@ import hashlib
 from io import BytesIO
 from typing import Union, List, Tuple
 
-from util import big_endian_to_int, int_to_big_endian, hash160, HARDENED
-from base58 import decode_base58_checksum, encode_base58_checksum
-from ecdsa import G, N, isinf, fast_multiply, fast_add, privkey_to_pubkey, encode_pubkey, decode_pubkey, decode_privkey
+from bsms.util import big_endian_to_int, int_to_big_endian, hash160, HARDENED
+from bsms.base58 import decode_base58_checksum, encode_base58_checksum
+from bsms.ecdsa import G, N, isinf, fast_multiply, fast_add, privkey_to_pubkey, encode_pubkey, decode_pubkey, decode_privkey
 
 
 Prv_or_PubKeyNode = Union["PrvKeyNode", "PubKeyNode"]
