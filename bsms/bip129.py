@@ -130,7 +130,7 @@ class CoordinatorSession:
             signed_data = "\n".join([version, token, key_exp, description])
             signed_digest = bitcoin_msg(signed_data)
             decoded_sig = base64.b64decode(sig)
-            recovered_sec = ecdsa_recover(bitcoin_msg(signed_data), decoded_sig)
+            recovered_sec = ecdsa_recover(signed_digest, decoded_sig)
             assert recovered_sec == parsed_sec
             assert ecdsa_verify(signed_digest, decoded_sig, parsed_sec), "Signature invalid"
             if is_xpub:
