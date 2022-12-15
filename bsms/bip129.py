@@ -217,8 +217,12 @@ class Signer:
         suffix = b"\x01" if compressed else b""
         return encode_base58_checksum(prefix + bytes(self.sk) + suffix)
 
-    def desc_type_key(self):
-        return "[%s/%s]%s" % (self.master_fp, self.path, self.pub)
+    def desc_type_key(self, h_hard=False):
+        if h_hard:
+            path = self.path.replace("'", "h")
+        else:
+            path = self.path
+        return "[%s/%s]%s" % (self.master_fp, path, self.pub)
 
     def round_1(self):
         result = "%s\n" % BSMS_VERSION
@@ -244,7 +248,11 @@ class Signer:
         # The Signer checks that its KEY is included in the descriptor or descriptor template, using path and fingerprint
         # information provided. The check must perform an exact match on the KEYs and not using shortcuts such as matching
         # fingerprints, which is trivial to spoof.
-        assert self.desc_type_key() in descriptor
+        try:
+            assert self.desc_type_key() in descriptor
+        except AssertionError:
+            # hardened derivation can be represented in multiple ways - allow second chance with 'h' instead of "'"
+            assert self.desc_type_key(h_hard=True) in descriptor
         # The Signer verifies that it is compatible with the derivation path restrictions.
         if "#" in descriptor:
             # has checksum
