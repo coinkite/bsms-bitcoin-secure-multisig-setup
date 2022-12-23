@@ -222,19 +222,20 @@ def test_vector_extended_encryption():
 
 
 def test_random_10_of_15():
-    coordinator = CoordinatorSession(M=10, N=15, script_type="p2wsh", encryption="EXTENDED")
-    coordinator.generate_token_key_pairs()
-    signers = []
-    for i, (token, _) in enumerate(coordinator.session_data):
-        s = Signer(token=token, key_description="key%d" % i)
-        signers.append(s)
-    key_records = []
-    for signer in signers:
-        key_records.append(signer.round_1())
-    descriptor_records = coordinator.round_2(key_records)
-    for signer, desc_record in zip(signers, descriptor_records):
-        signer.round_2(desc_record)
-    print("{0:50s}PASSED".format(test_random_10_of_15.__name__))
+    for testnet in [False, True]:
+        coordinator = CoordinatorSession(M=10, N=15, script_type="p2wsh", encryption="EXTENDED", testnet=testnet)
+        coordinator.generate_token_key_pairs()
+        signers = []
+        for i, (token, _) in enumerate(coordinator.session_data):
+            s = Signer(token=token, key_description="key%d" % i, testnet=testnet)
+            signers.append(s)
+        key_records = []
+        for signer in signers:
+            key_records.append(signer.round_1())
+        descriptor_records = coordinator.round_2(key_records)
+        for signer, desc_record in zip(signers, descriptor_records):
+            signer.round_2(desc_record)
+        print("{0:50s}PASSED".format(test_random_10_of_15.__name__ + f"_{'XTN' if testnet else 'BTC'}"))
 
 
 if __name__ == "__main__":

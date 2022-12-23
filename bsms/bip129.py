@@ -31,9 +31,10 @@ script2desc_multi = {
 
 class CoordinatorSession:
     def __init__(self, M, N, script_type, encryption="NO_ENCRYPTION", sortedmulti=True, path_restrictions="/0/*,/1/*",
-                 desc_checksum=False):
+                 desc_checksum=False, testnet=False):
         self.M = M
         self.N = N
+        self.testnet = testnet
         self.script_type = script_type.lower()
         assert self.script_type in list(script2desc_sortedmulti.keys())
         self.encryption = encryption.upper()
@@ -44,11 +45,12 @@ class CoordinatorSession:
         self.session_data = None
 
     def __repr__(self):
-        return "%d of %d %s encryption=%s" % (
+        return "%d of %d %s encryption=%s [%s]" % (
             self.M,
             self.N,
             self.script_type,
-            self.encryption
+            self.encryption,
+            "XTN" if self.testnet else "BTC"
         )
 
     def is_extended_encryption(self):
@@ -117,8 +119,9 @@ class CoordinatorSession:
             version, token, key_exp, description, sig = record.split("\n")
             bsms_versions.add(version)
             pub = key_exp[key_exp.find("]") + 1:]
-            if pub[:4] in ["xpub", "tpub"]:
-                parsed_xpub = PubKeyNode.parse(pub)
+            prefix = "tpub" if self.testnet else "xpub"
+            if pub[:4] == prefix:
+                parsed_xpub = PubKeyNode.parse(pub, testnet=self.testnet)
                 parsed_sec = parsed_xpub.sec()
                 nodes.append(parsed_xpub)
             else:
@@ -162,9 +165,9 @@ class CoordinatorSession:
                 secs.append(derived.sec())
 
         if self.script_type == "p2wsh":
-            address = p2wsh_address(secs, self.M, sortedmulti=self.sortedmulti)
+            address = p2wsh_address(secs, self.M, sortedmulti=self.sortedmulti, testnet=self.testnet)
         else:
-            address = p2sh_p2wsh_address(secs, self.M, sortedmulti=self.sortedmulti)
+            address = p2sh_p2wsh_address(secs, self.M, sortedmulti=self.sortedmulti, testnet=self.testnet)
         result += address
 
         results = []
@@ -183,19 +186,23 @@ class CoordinatorSession:
 
 
 class Signer:
-    def __init__(self, token, key_description, master_fp=None, wif=None, pub=None, path="48'/0'/0'/2'"):
+    def __init__(self, token, key_description, master_fp=None, wif=None, pub=None, path=None, testnet=False):
         self.token = token
+        self.testnet = testnet
         self.key_description = key_description
         assert len(key_description) <= 80
-        self.path = path
+        if path is not None:
+            self.path = path
+        else:
+            self.path = "48'/0'/0'/2'" if self.testnet else "48'/0'/0'/2'"
         self.encryption_key = key_derivation_function(token) if token != "00" else None
         if wif is None and pub is None and master_fp is None:
             # generate new
-            m = PrvKeyNode.master_key(os.urandom(64))
+            m = PrvKeyNode.master_key(os.urandom(64), testnet=self.testnet)
             self.master_fp = m.fingerprint().hex()
             ext_prv = m.derive_path(str2path(self.path))
             self.sk = ext_prv.key
-            self.wif = self.serialize_wif()
+            self.wif = self.serialize_wif(testnet=self.testnet)
             self.pub = ext_prv.extended_public_key()
         else:
             assert wif is not None and pub is not None
@@ -287,7 +294,8 @@ class Signer:
         for ke in key_expressions:
             ke = ke.replace("/**", "")
             pub = ke[ke.find("]") + 1:]
-            if pub[:4] in ["xpub", "tpub"]:
+            prefix = "tpub" if self.testnet else "xpub"
+            if pub[:4] == prefix:
                 ext_key = PubKeyNode.parse(pub)
                 derived = ext_key.derive_path([0, 0])
                 secs.append(derived.sec())
@@ -298,9 +306,9 @@ class Signer:
                 secs.append(derived)
 
         if script_type == "p2wsh":
-            address = p2wsh_address(secs, M, sortedmulti=sortedmulti)
+            address = p2wsh_address(secs, M, sortedmulti=sortedmulti, testnet=self.testnet)
         else:
-            address = p2sh_p2wsh_address(secs, M, sortedmulti=sortedmulti)
+            address = p2sh_p2wsh_address(secs, M, sortedmulti=sortedmulti, testnet=self.testnet)
         assert address == addr
 
         # For confirmation, the Signer must display to the user the wallet's first address and policy parameters,
