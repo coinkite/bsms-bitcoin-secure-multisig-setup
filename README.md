@@ -49,7 +49,7 @@ for signer, desc_record in zip(signers, descriptor_records):
     signer.round_2(desc_record)
 ```
 
-### Rrun test vectors
+### Run test vectors
 ```shell
 python3 test.py
 ```
